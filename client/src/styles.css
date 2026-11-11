@@ -1,0 +1,544 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: 'DM Sans', sans-serif;
+  color: #191919;
+  background: #f8f8f8;
+  --red: #b52b35;
+  --dark-red: #941e29;
+  --light-red: #f8e9ea;
+  --border: #e9e9e9;
+  --muted: #777;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f8f8f8;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.page-shell {
+  max-width: 1440px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 0 7%;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #191919;
+  text-decoration: none;
+}
+
+.brand-logo {
+  width: 42px;
+  height: 42px;
+  display: block;
+  object-fit: contain;
+  border-radius: 9px;
+}
+
+.brand-name {
+  font-family: 'Manrope', sans-serif;
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.brand-name span {
+  color: var(--red);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.privacy-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.privacy-note svg {
+  color: var(--red);
+}
+
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hero-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  align-items: center;
+  gap: 70px;
+  padding: 65px 0;
+}
+
+.hero-copy {
+  max-width: 620px;
+}
+
+.eyebrow-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid #ead8d9;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.hero-copy h1 {
+  margin: 30px 0 22px;
+  font-family: 'Manrope', sans-serif;
+  font-size: clamp(52px, 6vw, 82px);
+  line-height: 1.05;
+  letter-spacing: -4px;
+}
+
+.hero-copy h1 span,
+.welcome-card h1 span {
+  color: var(--red);
+}
+
+.hero-description {
+  max-width: 460px;
+  margin: 0;
+  color: #707070;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.hero-bottom {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 40px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hero-line {
+  width: 38px;
+  height: 2px;
+  background: var(--red);
+}
+
+.auth-card {
+  width: 100%;
+  padding: 32px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.05);
+}
+
+.card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.card-heading h2 {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 26px;
+}
+
+.card-heading p:not(.eyebrow) {
+  margin: 8px 0 0;
+  color: #858585;
+  font-size: 12px;
+}
+
+.card-heading .brand-logo {
+  width: 44px;
+  height: 44px;
+}
+
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin: 26px 0 24px;
+  background: #f4f4f4;
+  border-radius: 5px;
+}
+
+.mode-switch button {
+  padding: 11px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #858585;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mode-switch button.active {
+  background: #fff;
+  color: var(--red);
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.08);
+}
+
+.auth-form {
+  display: grid;
+  gap: 17px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  color: #454545;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.input-wrap {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 5px;
+  background: #fff;
+  color: #999;
+}
+
+.input-wrap:focus-within {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(181, 43, 53, 0.08);
+}
+
+.input-wrap input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #191919;
+  font-size: 12px;
+}
+
+.input-wrap input::placeholder {
+  color: #b5b5b5;
+}
+
+.password-toggle {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: #999;
+}
+
+.password-toggle:hover {
+  color: var(--red);
+}
+
+.field-hint {
+  color: #999;
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.submit-button {
+  height: 49px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 5px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.submit-button:hover {
+  background: var(--dark-red);
+}
+
+.submit-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.alert {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.alert.error {
+  background: #fff0f0;
+  color: #a52b35;
+}
+
+.alert.success {
+  background: #edf7ef;
+  color: #3c7549;
+}
+
+.terms-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 20px 0 0;
+  color: #929292;
+  font-size: 10px;
+}
+
+.terms-note svg {
+  color: var(--red);
+}
+
+.footer {
+  min-height: 65px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  color: #999;
+  font-size: 10px;
+}
+
+.welcome-card {
+  width: min(540px, 100%);
+  margin: auto;
+  padding: 42px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.05);
+}
+
+.success-icon {
+  width: 55px;
+  height: 55px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 22px;
+  border-radius: 9px;
+  background: var(--light-red);
+  color: var(--red);
+}
+
+.welcome-card h1 {
+  margin: 0;
+  font-family: 'Manrope', sans-serif;
+  font-size: 42px;
+  line-height: 1.2;
+}
+
+.welcome-copy {
+  max-width: 370px;
+  margin: 15px auto 27px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.account-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-align: left;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--light-red);
+  color: var(--red);
+  font-weight: 700;
+}
+
+.account-details {
+  flex: 1;
+}
+
+.account-chip strong,
+.account-chip small {
+  display: block;
+}
+
+.account-chip strong {
+  color: #444;
+  font-size: 12px;
+}
+
+.account-chip small {
+  margin-top: 4px;
+  color: #999;
+  font-size: 10px;
+}
+
+.verified {
+  color: var(--red);
+}
+
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.loading-screen .brand-logo {
+  width: 54px;
+  height: 54px;
+}
+
+@media (max-width: 950px) {
+  .page-shell {
+    padding: 0 35px;
+  }
+
+  .hero-layout {
+    grid-template-columns: 1fr 400px;
+    gap: 35px;
+  }
+
+  .hero-copy h1 {
+    font-size: 60px;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-shell {
+    padding: 0 22px;
+  }
+
+  .topbar {
+    height: 72px;
+  }
+
+  .privacy-note {
+    font-size: 0;
+  }
+
+  .privacy-note svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .hero-layout {
+    grid-template-columns: 1fr;
+    gap: 38px;
+    padding: 45px 0;
+  }
+
+  .hero-copy h1 {
+    font-size: 56px;
+    letter-spacing: -3px;
+  }
+
+  .auth-card {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 27px 22px;
+  }
+}
+
+@media (max-width: 420px) {
+  .page-shell {
+    padding: 0 16px;
+  }
+
+  .hero-copy h1 {
+    font-size: 46px;
+  }
+
+  .auth-card {
+    padding: 23px 17px;
+  }
+
+  .welcome-card {
+    padding: 28px 18px;
+  }
+
+  .welcome-card h1 {
+    font-size: 34px;
+  }
+
+  .footer {
+    font-size: 9px;
+  }
+}
