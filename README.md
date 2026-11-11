@@ -1,26 +1,28 @@
-# Sweety 💚
 
-A diabetes glucose-tracking app. This first milestone implements **account registration, login, logout, and authenticated session identity**. Daily glucose entries (up to four per day) and daily/monthly reports are planned for later milestones.
+# Sweety
 
-## Stack
+A diabetes glucose-tracking application. This initial milestone implements account registration, login, logout, and authenticated session identity.
+
+## Tech Stack
 
 - **Frontend:** React 18 + Vite
 - **Backend:** Node.js + Express
 - **Database:** PostgreSQL 16
 - **Authentication:** bcrypt password hashing + signed JWT in an HTTP-only cookie
 
-## What's included in milestone 1
+## Features – Step 1
 
 - Register with name, email, and password.
 - Log in with email and password.
-- Passwords are hashed with bcrypt (12 salt rounds); plain-text passwords are never persisted.
+- Passwords are hashed with bcrypt (12 salt rounds); plaintext passwords are never persisted.
 - Case-insensitive unique email addresses.
 - Authenticated `/api/auth/me` endpoint restores the signed-in session.
 - Logout clears the session cookie.
-- Protected API middleware attaches the verified user ID from the server-signed token. Future reading queries must always filter by this ID.
+- Protected API middleware attaches the verified user ID from the server-signed token.
+- Future reading queries must always filter by the authenticated user ID.
 - Rate limiting on authentication routes, Helmet security headers, parameterized SQL, and HTTP-only session cookies.
 
-## Run locally
+## Run Locally
 
 ### 1. Requirements
 
@@ -32,7 +34,9 @@ Install Node.js 20+ and Docker Desktop (or a local PostgreSQL 16 server).
 cp .env.example server/.env
 ```
 
-Edit `server/.env` and set `JWT_SECRET` to a random secret of at least 32 characters. Example generator:
+Edit `server/.env` and set `JWT_SECRET` to a random secret of at least 32 characters.
+
+Generate one using:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
@@ -46,9 +50,11 @@ From the project root:
 docker compose up -d db
 ```
 
-The database schema is loaded automatically on the first volume initialization. If you already had a previous database volume, run `docker compose down -v` and then `docker compose up -d db` to recreate it (this deletes the local development database data).
+The database schema is loaded automatically on first volume initialization.
 
-### 4. Install and run
+**Warning:** Running `docker compose down -v` deletes your local development database data.
+
+### 4. Install and Run
 
 ```bash
 npm install
@@ -61,10 +67,10 @@ npm run dev
 - Express API: http://localhost:4000
 - Health check: http://localhost:4000/api/health
 
-## API endpoints
+## API Endpoints
 
 | Method | Endpoint | Auth | Description |
-|---|---|---:|---|
+|---|---|---|---|
 | POST | `/api/auth/register` | No | Create account and sign in |
 | POST | `/api/auth/login` | No | Verify credentials and sign in |
 | POST | `/api/auth/logout` | No | Clear session cookie |
@@ -72,7 +78,7 @@ npm run dev
 | GET | `/api/private` | Yes | Example protected route |
 | GET | `/api/health` | No | API health check |
 
-### Example registration payload
+### Example Registration Payload
 
 ```json
 {
@@ -84,18 +90,18 @@ npm run dev
 
 The API returns a safe user object (`id`, `name`, `email`) and sets an HTTP-only `sweety_token` cookie. The JWT is not exposed to frontend JavaScript or stored in localStorage.
 
-## Security notes
+## Security Notes
 
 - Never commit `.env` files or production credentials.
 - Use HTTPS in production so secure cookies are enabled.
 - Set a unique, high-entropy `JWT_SECRET` in every deployed environment.
 - The database role should have only the permissions the app needs.
-- When glucose readings are introduced, every read/update/delete query must include `WHERE user_id = req.user.id`; never trust a user ID supplied by the browser.
+- Every glucose reading query must include `WHERE user_id = req.user.id`. Never trust a user ID supplied by the browser.
 - This is an early application milestone, not a medical device. Glucose values and reports must not replace advice from a qualified clinician.
 
 ## Roadmap
 
-1. **Authentication (this commit):** signup/login and user isolation foundation.
-2. Glucose readings: create up to four dated readings per user per day.
-3. Daily and monthly reports.
-4. Validation, automated tests, deployment, and production hardening.
+1. **Authentication:** Signup, login, and user isolation foundation.
+2. **Glucose Readings:** Create up to four dated readings per user per day.
+3. **Reports:** Daily and monthly reports.
+4. **Production Readiness:** Validation, automated tests, deployment, and security hardening.
