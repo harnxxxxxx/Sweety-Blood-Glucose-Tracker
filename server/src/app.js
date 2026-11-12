@@ -6,6 +6,7 @@ import { rateLimit } from 'express-rate-limit';
 import authRouter from './routes/auth.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import readingsRouter from './routes/readings.js';
+import reportsRouter from './routes/reports.js';
 
 export const app = express();
 
@@ -28,8 +29,9 @@ const authLimiter = rateLimit({
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', app: 'Sweety API' }));
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/readings', readingsRouter);
+app.use('/api/reports', reportsRouter);
 
-// Protected route confirms the server-side identity boundary for future user data APIs.
+// Protected route 
 app.get('/api/private', requireAuth, (req, res) => {
   res.json({ userId: req.user.id, message: 'You are authenticated.' });
 });

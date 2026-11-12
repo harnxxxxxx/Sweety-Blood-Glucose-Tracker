@@ -50,7 +50,7 @@ function Logo() {
   );
 }
 
-// Get today's date in YYYY-MM-DD format
+// date in YYYY-MM-DD format
 function getToday() {
   const date = new Date();
   const year = date.getFullYear();
@@ -60,7 +60,21 @@ function getToday() {
   return `${year}-${month}-${day}`;
 }
 
-// Available glucose reading time slots
+// Format an ISO date without introducing timezone shifts.
+function formatReportDate(dateString) {
+  if (!dateString) return '';
+
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }).format(date);
+}
+
+//  time slots
 const timeSlots = [
   { value: 'morning', label: 'Morning (fasting)' },
   { value: 'after_breakfast', label: 'After breakfast' },
@@ -84,6 +98,14 @@ function Dashboard({ user }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Reports state
+  const [reportDate, setReportDate] = useState(getToday());
+  const [reportType, setReportType] = useState('daily');
+  const [reportData, setReportData] = useState(null);
+  const [reportLoading, setReportLoading] = useState(true);
+  const [reportError, setReportError] = useState('');
+  const [showReports, setShowReports] = useState(false);
+
   // Fetch glucose readings
   async function loadReadings() {
     try {
@@ -99,6 +121,28 @@ function Dashboard({ user }) {
   useEffect(() => {
     loadReadings();
   }, []);
+
+  // Fetch daily, month-to-date, and previous-month reports.
+  async function loadReports(date = reportDate) {
+    setReportLoading(true);
+    setReportError('');
+
+    try {
+      const data = await api(`/api/reports?date=${encodeURIComponent(date)}`);
+      setReportData(data);
+    } catch (err) {
+      setReportError(err.message);
+    } finally {
+      setReportLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadReports(reportDate);
+  }, [reportDate]);
+
+  const selectedReport = reportData?.reports?.[reportType];
+  const selectedRange = reportData?.dateRanges?.[reportType];
 
   // Handle form input changes
   function updateReadingField(event) {
@@ -116,6 +160,30 @@ function Dashboard({ user }) {
 
     setError('');
     setSuccess('');
+
+    // Validate here warning pop ups
+    if (!form.date) {
+      setError('Please select a date.');
+      return;
+    }
+
+    if (form.date > getToday()) {
+      setError('Date cannot be in the future.');
+      return;
+    }
+
+    if (form.value.trim() === '') {
+      setError('Please enter a glucose value.');
+      return;
+    }
+
+    const glucoseValue = Number(form.value);
+
+    if (!Number.isInteger(glucoseValue) || glucoseValue < 40 || glucoseValue > 600) {
+      setError('Value must be between 40 and 600 mg/dl.');
+      return;
+    }
+
     setBusy(true);
 
     try {
@@ -139,6 +207,7 @@ function Dashboard({ user }) {
       setEditingId(null);
 
       await loadReadings();
+      await loadReports();
 
     } catch (err) {
       setError(err.message);
@@ -182,6 +251,7 @@ function Dashboard({ user }) {
       }
 
       await loadReadings();
+      await loadReports();
 
     } catch (err) {
       setError(err.message);
@@ -218,10 +288,21 @@ function Dashboard({ user }) {
           </p>
         </div>
 
-        <div className="dashboard-count">
-          <Activity size={22} />
-          <strong>{readings.length}</strong>
-          <small>Total readings</small>
+        <div className="dashboard-actions">
+          <button
+            type="button"
+            className="reports-trigger"
+            onClick={() => setShowReports(true)}
+          >
+            <Activity size={18} />
+            View reports
+          </button>
+
+          <div className="dashboard-count">
+            <Activity size={22} />
+            <strong>{readings.length}</strong>
+            <small>Total readings</small>
+          </div>
         </div>
       </div>
 
@@ -237,7 +318,7 @@ function Dashboard({ user }) {
             {editingId ? 'Update your reading' : 'Add glucose reading'}
           </h2>
 
-          <form onSubmit={handleSave} className="reading-form">
+          <form onSubmit={handleSave} className="reading-form" noValidate>
 
             <label className="field">
               <span>Date</span>
@@ -246,7 +327,6 @@ function Dashboard({ user }) {
                 type="date"
                 name="date"
                 value={form.date}
-                max={getToday()}
                 onChange={updateReadingField}
                 required
               />
@@ -275,8 +355,6 @@ function Dashboard({ user }) {
               <input
                 type="number"
                 name="value"
-                min="40"
-                max="600"
                 step="1"
                 value={form.value}
                 onChange={updateReadingField}
@@ -399,11 +477,123 @@ function Dashboard({ user }) {
         </section>
 
       </div>
+
+      {/* Reports  */}
+      {showReports && (
+        <div
+          className="reports-overlay"
+          onClick={() => setShowReports(false)}
+          role="presentation"
+        >
+          <section
+            className="reports-section"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reports-title"
+            onClick={event => event.stopPropagation()}
+          >
+        <div className="reports-heading">
+          <div>
+            <p className="eyebrow">YOUR INSIGHTS</p>
+            <h2 id="reports-title">Glucose reports</h2>
+            <p className="reports-subtitle">Review your readings across different time periods.</p>
+          </div>
+
+          <label className="report-date-field">
+            <span>Report date</span>
+            <input
+              type="date"
+              value={reportDate}
+              max={getToday()}
+              onChange={event => setReportDate(event.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="report-tabs" role="tablist" aria-label="Report period">
+          <button type="button" role="tab" aria-selected={reportType === 'daily'} className={reportType === 'daily' ? 'active' : ''} onClick={() => setReportType('daily')}>Daily</button>
+          <button type="button" role="tab" aria-selected={reportType === 'monthToDate'} className={reportType === 'monthToDate' ? 'active' : ''} onClick={() => setReportType('monthToDate')}>Month-to-date</button>
+          <button type="button" role="tab" aria-selected={reportType === 'monthly'} className={reportType === 'monthly' ? 'active' : ''} onClick={() => setReportType('monthly')}>Previous month</button>
+        </div>
+
+        {reportLoading ? (
+          <p className="empty-state">Loading report...</p>
+        ) : reportError ? (
+          <p className="alert error">{reportError}</p>
+        ) : selectedReport ? (
+          <>
+            <p className="report-range">
+              {selectedRange?.startDate === selectedRange?.endDate
+                ? formatReportDate(selectedRange.startDate)
+                : `${formatReportDate(selectedRange?.startDate)} – ${formatReportDate(selectedRange?.endDate)}`}
+            </p>
+
+            {selectedReport.count === 0 ? (
+              <div className="report-empty">
+                <Activity size={25} />
+                <strong>No readings for this period</strong>
+                <p>Add glucose readings to see your highest, lowest, and average values here.</p>
+              </div>
+            ) : (
+              <>
+                <div className="report-stats">
+                  <article className="report-stat">
+                    <span>Highest</span>
+                    <strong>{selectedReport.highest}</strong>
+                    <small>mg/dl</small>
+                  </article>
+                  <article className="report-stat">
+                    <span>Lowest</span>
+                    <strong>{selectedReport.lowest}</strong>
+                    <small>mg/dl</small>
+                  </article>
+                  <article className="report-stat">
+                    <span>Average</span>
+                    <strong>{Number(selectedReport.average).toFixed(1)}</strong>
+                    <small>mg/dl</small>
+                  </article>
+                  <article className="report-stat">
+                    <span>Readings</span>
+                    <strong>{selectedReport.count}</strong>
+                    <small>total entries</small>
+                  </article>
+                </div>
+
+                {reportType === 'daily' && selectedReport.readings?.length > 0 && (
+                  <div className="daily-report-readings">
+                    <h3>Readings for the day</h3>
+                    {selectedReport.readings.map(reading => {
+                      const slot = timeSlots.find(item => item.value === reading.time_slot);
+                      return (
+                        <div className="daily-report-item" key={reading.id}>
+                          <span>{slot?.label || reading.time_slot}</span>
+                          <strong>{reading.glucose_value} mg/dl</strong>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        ) : null}
+            <div className="reports-modal-footer">
+              <button
+                type="button"
+                className="reports-close-button"
+                onClick={() => setShowReports(false)}
+              >
+                Close reports
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 }
 
-// Main application
+// Main 
 function App() {
   const [mode, setMode] = useState('register');
   const [user, setUser] = useState(null);
@@ -420,7 +610,7 @@ function App() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Check whether the user is already logged in
+  // Check already logged in
   useEffect(() => {
     api('/api/auth/me')
       .then(data => setUser(data.user))
@@ -540,15 +730,15 @@ function App() {
         </div>
       </header>
 
-      {/* IMPORTANT: Only ONE ternary condition */}
+      {/* Only ONE ternary condition */}
       {user ? (
 
-        // Logged-in user sees the dashboard
+        // Logged-in 
         <Dashboard user={user} />
 
       ) : (
 
-        // Logged-out user sees the login/register page
+        // Logged-out 
         <section className="hero-layout" id="home">
 
           <div className="hero-copy">
@@ -754,7 +944,7 @@ function App() {
   );
 }
 
-// Render the application
+
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
