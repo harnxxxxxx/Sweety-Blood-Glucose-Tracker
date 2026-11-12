@@ -11,17 +11,59 @@ router.use(requireAuth);
 // GET
 router.get('/', async (req, res, next) => {
   try {
+    const page = req.query.page === undefined
+      ? 1
+      : Number(req.query.page);
+
+    const limit = req.query.limit === undefined
+      ? 20
+      : Number(req.query.limit);
+
+    // Validate pagination parameters
+    if (
+      !Number.isInteger(page) ||
+      page < 1 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 100
+    ) {
+      return res.status(400).json({
+        error: 'Page must be at least 1 and limit must be between 1 and 100.'
+      });
+    }
+
+    const offset = (page - 1) * limit;
+    const userId = req.user.id;
+
+    // Get total number of readings belonging to this user
+    const countResult = await pool.query(
+      `SELECT COUNT(*)::int AS total
+       FROM glucose_readings
+       WHERE user_id = $1`,
+      [userId]
+    );
+
+    const totalReadings = countResult.rows[0].total;
+
+    // Get readings for the requested page
     const result = await pool.query(
       `SELECT id, reading_date, time_slot, glucose_value,
               created_at, updated_at
        FROM glucose_readings
        WHERE user_id = $1
-       ORDER BY reading_date DESC`,
-      [req.user.id]
+       ORDER BY reading_date DESC, created_at DESC, id DESC
+       LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
     );
 
     return res.json({
-      readings: result.rows
+      readings: result.rows,
+      pagination: {
+        page,
+        limit,
+        totalReadings,
+        totalPages: Math.ceil(totalReadings / limit)
+      }
     });
 
   } catch (error) {

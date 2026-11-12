@@ -6,7 +6,6 @@ import {
   Check,
   Eye,
   EyeOff,
-  Heart,
   LockKeyhole,
   Mail,
   ShieldCheck,
@@ -16,6 +15,15 @@ import {
   Trash2,
   X
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip
+} from 'recharts';
 import './styles.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
@@ -50,7 +58,7 @@ function Logo() {
   );
 }
 
-// date in YYYY-MM-DD format
+// Date in YYYY-MM-DD format
 function getToday() {
   const date = new Date();
   const year = date.getFullYear();
@@ -74,7 +82,7 @@ function formatReportDate(dateString) {
   }).format(date);
 }
 
-//  time slots
+// Time slots
 const timeSlots = [
   { value: 'morning', label: 'Morning (fasting)' },
   { value: 'after_breakfast', label: 'After breakfast' },
@@ -82,9 +90,229 @@ const timeSlots = [
   { value: 'after_dinner', label: 'After dinner' }
 ];
 
+// Glucose trend chart
+function GlucoseTrendChart({ readings, loading, error }) {
+  const today = getToday();
+
+  const startDate = new Date(`${today}T00:00:00`);
+  startDate.setDate(startDate.getDate() - 29);
+
+  const startKey = [
+    startDate.getFullYear(),
+    String(startDate.getMonth() + 1).padStart(2, '0'),
+    String(startDate.getDate()).padStart(2, '0')
+  ].join('-');
+
+  const slotOrder = {
+    morning: 1,
+    after_breakfast: 2,
+    after_lunch: 3,
+    after_dinner: 4
+  };
+
+  const chartData = readings
+    .filter(reading => {
+      const date = String(reading.reading_date).slice(0, 10);
+      return date >= startKey && date <= today;
+    })
+    .sort((a, b) => {
+      const dateA = String(a.reading_date).slice(0, 10);
+      const dateB = String(b.reading_date).slice(0, 10);
+
+      if (dateA !== dateB) {
+        return dateA.localeCompare(dateB);
+      }
+
+      return slotOrder[a.time_slot] - slotOrder[b.time_slot];
+    })
+    .map((reading, index, array) => {
+      const date = String(reading.reading_date).slice(0, 10);
+
+      const previousDate =
+        index > 0
+          ? String(array[index - 1].reading_date).slice(0, 10)
+          : null;
+
+      return {
+        ...reading,
+        glucose_value: Number(reading.glucose_value),
+        fullDate: formatReportDate(date),
+        axisDate:
+          date === previousDate
+            ? ''
+            : new Intl.DateTimeFormat('en-IN', {
+                day: 'numeric',
+                month: 'short'
+              }).format(new Date(`${date}T00:00:00`))
+      };
+    });
+
+  const slotNames = {
+    morning: 'Morning (fasting)',
+    after_breakfast: 'After breakfast',
+    after_lunch: 'After lunch',
+    after_dinner: 'After dinner'
+  };
+
+  function CustomTooltip({ active, payload }) {
+    if (!active || !payload?.length) {
+      return null;
+    }
+
+    const reading = payload[0].payload;
+
+    return (
+      <div className="chart-tooltip">
+        <strong>{reading.fullDate}</strong>
+
+        <span>
+          {slotNames[reading.time_slot] || reading.time_slot}
+        </span>
+
+        <p>
+          {reading.glucose_value} <small>mg/dl</small>
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <section className="trend-card">
+
+      <div className="trend-heading">
+        <div>
+          <p className="eyebrow">YOUR GLUCOSE PATTERN</p>
+
+          <h2>Glucose Chart</h2>
+
+          <p className="trend-subtitle">
+            Your readings over the last 30 days.
+          </p>
+        </div>
+
+        <span className="trend-period">
+          LAST 30 DAYS
+        </span>
+      </div>
+
+      {loading ? (
+        <p className="trend-message">
+          Loading glucose trend...
+        </p>
+      ) : error ? (
+        <p className="trend-message trend-error">
+          {error}
+        </p>
+      ) : chartData.length === 0 ? (
+        <div className="trend-empty">
+          <Activity size={26} />
+
+          <strong>
+            No readings for this period
+          </strong>
+
+          <p>
+            Add glucose readings to see your trend here.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="trend-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={chartData}
+                margin={{
+                  top: 15,
+                  right: 15,
+                  left: 0,
+                  bottom: 5
+                }}
+              >
+                <CartesianGrid
+                  stroke="#eeeeee"
+                  strokeDasharray="4 4"
+                  vertical={false}
+                />
+
+                <XAxis
+                  dataKey="axisDate"
+                  tick={{
+                    fill: '#777',
+                    fontSize: 11
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={0}
+                />
+
+                <YAxis
+                  domain={[40, 600]}
+                  tick={{
+                    fill: '#777',
+                    fontSize: 11
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={42}
+                  tickCount={6}
+                />
+
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{
+                    stroke: '#d9a0a4',
+                    strokeDasharray: '4 4'
+                  }}
+                />
+
+                <Line
+                  type="monotone"
+                  dataKey="glucose_value"
+                  stroke="#b52b35"
+                  strokeWidth={2.5}
+                  dot={{
+                    r: 4,
+                    fill: '#b52b35',
+                    stroke: '#ffffff',
+                    strokeWidth: 2
+                  }}
+                  activeDot={{
+                    r: 7,
+                    fill: '#b52b35',
+                    stroke: '#ffffff',
+                    strokeWidth: 3
+                  }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <p className="trend-footnote">
+            Each point represents one recorded glucose reading.
+          </p>
+        </>
+      )}
+
+    </section>
+  );
+}
+
 // Dashboard component
 function Dashboard({ user }) {
   const [readings, setReadings] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    totalReadings: 0,
+    totalPages: 0
+  });
+
+  // Chart state
+  const [chartReadings, setChartReadings] = useState([]);
+  const [chartLoading, setChartLoading] = useState(true);
+  const [chartError, setChartError] = useState('');
 
   const [form, setForm] = useState({
     date: getToday(),
@@ -106,11 +334,19 @@ function Dashboard({ user }) {
   const [reportError, setReportError] = useState('');
   const [showReports, setShowReports] = useState(false);
 
-  // Fetch glucose readings
-  async function loadReadings() {
+  // Fetch paginated glucose readings.
+  async function loadReadings(page = currentPage) {
+    setLoading(true);
+
     try {
-      const data = await api('/api/readings');
+      const data = await api(
+        `/api/readings?page=${page}&limit=20`
+      );
+
       setReadings(data.readings);
+      setPagination(data.pagination);
+      setCurrentPage(data.pagination.page);
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -118,18 +354,68 @@ function Dashboard({ user }) {
     }
   }
 
-  useEffect(() => {
-    loadReadings();
-  }, []);
+  
+  // Fetch readings for the last 30 days for the trend chart.
+  async function loadTrend() {
+    setChartLoading(true);
+    setChartError('');
 
-  // Fetch daily, month-to-date, and previous-month reports.
+    try {
+      const startDate = new Date();
+      startDate.setHours(0, 0, 0, 0);
+      startDate.setDate(startDate.getDate() - 29);
+
+      const startKey = [
+        startDate.getFullYear(),
+        String(startDate.getMonth() + 1).padStart(2, '0'),
+        String(startDate.getDate()).padStart(2, '0')
+      ].join('-');
+
+      const firstPage = await api(
+        '/api/readings?page=1&limit=100'
+      );
+
+      let allReadings = [...firstPage.readings];
+      let page = 2;
+
+      while (page <= firstPage.pagination.totalPages) {
+        const oldestDate = String(
+          allReadings[allReadings.length - 1]?.reading_date || ''
+        ).slice(0, 10);
+
+        if (oldestDate && oldestDate < startKey) {
+          break;
+        }
+
+        const data = await api(
+          `/api/readings?page=${page}&limit=100`
+        );
+
+        allReadings = [...allReadings, ...data.readings];
+        page++;
+      }
+
+      setChartReadings(allReadings);
+
+    } catch (err) {
+      setChartError(err.message);
+    } finally {
+      setChartLoading(false);
+    }
+  }
+
+  // Fetch glucose reports for the selected date.
   async function loadReports(date = reportDate) {
     setReportLoading(true);
     setReportError('');
 
     try {
-      const data = await api(`/api/reports?date=${encodeURIComponent(date)}`);
+      const data = await api(
+        `/api/reports?date=${date}`
+      );
+
       setReportData(data);
+
     } catch (err) {
       setReportError(err.message);
     } finally {
@@ -137,14 +423,22 @@ function Dashboard({ user }) {
     }
   }
 
+  // Load initial readings and chart data.
+  useEffect(() => {
+    loadReadings(1);
+    loadTrend();
+  }, []);
+
+  // Reload reports when the selected date changes.
   useEffect(() => {
     loadReports(reportDate);
   }, [reportDate]);
 
+
   const selectedReport = reportData?.reports?.[reportType];
   const selectedRange = reportData?.dateRanges?.[reportType];
 
-  // Handle form input changes
+  // Handle form input changes.
   function updateReadingField(event) {
     const { name, value } = event.target;
 
@@ -154,14 +448,13 @@ function Dashboard({ user }) {
     }));
   }
 
-  // Add or update a glucose reading
+  // Add or update a glucose reading.
   async function handleSave(event) {
     event.preventDefault();
 
     setError('');
     setSuccess('');
 
-    // Validate here warning pop ups
     if (!form.date) {
       setError('Please select a date.');
       return;
@@ -179,12 +472,18 @@ function Dashboard({ user }) {
 
     const glucoseValue = Number(form.value);
 
-    if (!Number.isInteger(glucoseValue) || glucoseValue < 40 || glucoseValue > 600) {
+    if (
+      !Number.isInteger(glucoseValue) ||
+      glucoseValue < 40 ||
+      glucoseValue > 600
+    ) {
       setError('Value must be between 40 and 600 mg/dl.');
       return;
     }
 
     setBusy(true);
+
+    const wasEditing = Boolean(editingId);
 
     try {
       const endpoint = editingId
@@ -206,8 +505,11 @@ function Dashboard({ user }) {
 
       setEditingId(null);
 
-      await loadReadings();
+      const pageToLoad = wasEditing ? currentPage : 1;
+
+      await loadReadings(pageToLoad);
       await loadReports();
+      await loadTrend();
 
     } catch (err) {
       setError(err.message);
@@ -216,7 +518,7 @@ function Dashboard({ user }) {
     }
   }
 
-  // Load a reading into the form for editing
+  // Load a reading into the form for editing.
   function handleEdit(reading) {
     setEditingId(reading.id);
 
@@ -230,7 +532,7 @@ function Dashboard({ user }) {
     setSuccess('');
   }
 
-  // Delete a glucose reading
+  // Delete a glucose reading.
   async function handleDelete(id) {
     if (!window.confirm('Are you sure you want to delete this reading?')) {
       return;
@@ -250,15 +552,21 @@ function Dashboard({ user }) {
         cancelEdit();
       }
 
-      await loadReadings();
+      const nextPage =
+        readings.length === 1 && currentPage > 1
+          ? currentPage - 1
+          : currentPage;
+
+      await loadReadings(nextPage);
       await loadReports();
+      await loadTrend();
 
     } catch (err) {
       setError(err.message);
     }
   }
 
-  // Cancel editing
+  // Cancel editing.
   function cancelEdit() {
     setEditingId(null);
 
@@ -275,9 +583,12 @@ function Dashboard({ user }) {
   return (
     <section className="dashboard">
 
+      {/* Dashboard heading */}
       <div className="dashboard-heading">
         <div>
-          <p className="eyebrow">YOUR PERSONAL HEALTH SPACE</p>
+          <p className="eyebrow">
+            YOUR PERSONAL HEALTH SPACE
+          </p>
 
           <h1>
             Hello, <span>{user.name.split(' ')[0]}.</span>
@@ -289,6 +600,7 @@ function Dashboard({ user }) {
         </div>
 
         <div className="dashboard-actions">
+
           <button
             type="button"
             className="reports-trigger"
@@ -300,106 +612,127 @@ function Dashboard({ user }) {
 
           <div className="dashboard-count">
             <Activity size={22} />
-            <strong>{readings.length}</strong>
+            <strong>{pagination.totalReadings}</strong>
             <small>Total readings</small>
           </div>
+
         </div>
       </div>
 
+      {/* Two-column dashboard layout */}
       <div className="dashboard-grid">
 
-        {/* Add or edit reading form */}
-        <section className="reading-card">
-          <p className="eyebrow">
-            {editingId ? 'EDIT READING' : 'NEW READING'}
-          </p>
+        {/* LEFT COLUMN: New Reading + Chart */}
+        <div className="dashboard-left-column">
 
-          <h2>
-            {editingId ? 'Update your reading' : 'Add glucose reading'}
-          </h2>
+          {/* Add or edit reading form */}
+          <section className="reading-card">
 
-          <form onSubmit={handleSave} className="reading-form" noValidate>
+            <p className="eyebrow">
+              {editingId ? 'EDIT READING' : 'NEW READING'}
+            </p>
 
-            <label className="field">
-              <span>Date</span>
+            <h2>
+              {editingId
+                ? 'Update your reading'
+                : 'Add glucose reading'}
+            </h2>
 
-              <input
-                type="date"
-                name="date"
-                value={form.date}
-                onChange={updateReadingField}
-                required
-              />
-            </label>
-
-            <label className="field">
-              <span>Time slot</span>
-
-              <select
-                name="timeSlot"
-                value={form.timeSlot}
-                onChange={updateReadingField}
-                required
-              >
-                {timeSlots.map(slot => (
-                  <option key={slot.value} value={slot.value}>
-                    {slot.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="field">
-              <span>Glucose value (mg/dl)</span>
-
-              <input
-                type="number"
-                name="value"
-                step="1"
-                value={form.value}
-                onChange={updateReadingField}
-                placeholder="Enter value (40–600)"
-                required
-              />
-            </label>
-
-            {error && (
-              <p className="alert error">{error}</p>
-            )}
-
-            {success && (
-              <p className="alert success">{success}</p>
-            )}
-
-            <button
-              className="submit-button"
-              type="submit"
-              disabled={busy}
+            <form
+              onSubmit={handleSave}
+              className="reading-form"
+              noValidate
             >
-              {busy
-                ? 'Please wait...'
-                : editingId
-                  ? 'Update reading'
-                  : 'Save reading'}
 
-              <Check size={18} />
-            </button>
+              <label className="field">
+                <span>Date</span>
 
-            {editingId && (
+                <input
+                  type="date"
+                  name="date"
+                  value={form.date}
+                  onChange={updateReadingField}
+                  required
+                />
+              </label>
+
+              <label className="field">
+                <span>Time slot</span>
+
+                <select
+                  name="timeSlot"
+                  value={form.timeSlot}
+                  onChange={updateReadingField}
+                  required
+                >
+                  {timeSlots.map(slot => (
+                    <option key={slot.value} value={slot.value}>
+                      {slot.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="field">
+                <span>Glucose value (mg/dl)</span>
+
+                <input
+                  type="number"
+                  name="value"
+                  step="1"
+                  value={form.value}
+                  onChange={updateReadingField}
+                  placeholder="Enter value (40–600)"
+                  required
+                />
+              </label>
+
+              {error && (
+                <p className="alert error">{error}</p>
+              )}
+
+              {success && (
+                <p className="alert success">{success}</p>
+              )}
+
               <button
-                className="cancel-button"
-                type="button"
-                onClick={cancelEdit}
+                className="submit-button"
+                type="submit"
+                disabled={busy}
               >
-                <X size={16} />
-                Cancel editing
+                {busy
+                  ? 'Please wait...'
+                  : editingId
+                    ? 'Update reading'
+                    : 'Save reading'}
+
+                <Check size={18} />
               </button>
-            )}
 
-          </form>
-        </section>
+              {editingId && (
+                <button
+                  className="cancel-button"
+                  type="button"
+                  onClick={cancelEdit}
+                >
+                  <X size={16} />
+                  Cancel editing
+                </button>
+              )}
 
-        {/* Reading history */}
+            </form>
+          </section>
+
+          {/* Glucose trend chart below New Reading */}
+          <GlucoseTrendChart
+            readings={chartReadings}
+            loading={chartLoading}
+            error={chartError}
+          />
+
+        </div>
+
+        {/* RIGHT COLUMN: Your Records */}
         <section className="history-card">
 
           <div className="history-heading">
@@ -432,6 +765,7 @@ function Dashboard({ user }) {
                     className="reading-item"
                     key={reading.id}
                   >
+
                     <div className="reading-info">
                       <strong>
                         {reading.glucose_value} mg/dl
@@ -467,6 +801,7 @@ function Dashboard({ user }) {
                       </button>
 
                     </div>
+
                   </article>
                 );
               })}
@@ -474,17 +809,63 @@ function Dashboard({ user }) {
             </div>
           )}
 
+          {/* Pagination controls */}
+          {!loading && pagination.totalReadings > 0 && (
+            <div className="pagination">
+
+              <p className="pagination-info">
+                Showing{' '}
+                {(currentPage - 1) * pagination.limit + 1}
+                {' '}–{' '}
+                {Math.min(
+                  currentPage * pagination.limit,
+                  pagination.totalReadings
+                )}
+                {' '}of {pagination.totalReadings} readings
+              </p>
+
+              <div className="pagination-controls">
+
+                <button
+                  type="button"
+                  className="pagination-button"
+                  onClick={() => loadReadings(currentPage - 1)}
+                  disabled={currentPage <= 1 || loading}
+                >
+                  Previous
+                </button>
+
+                <span className="pagination-page">
+                  Page {currentPage} of {pagination.totalPages}
+                </span>
+
+                <button
+                  type="button"
+                  className="pagination-button"
+                  onClick={() => loadReadings(currentPage + 1)}
+                  disabled={
+                    currentPage >= pagination.totalPages || loading
+                  }
+                >
+                  Next
+                </button>
+
+              </div>
+            </div>
+          )}
+
         </section>
 
       </div>
 
-      {/* Reports  */}
+      {/* Reports modal */}
       {showReports && (
         <div
           className="reports-overlay"
           onClick={() => setShowReports(false)}
           role="presentation"
         >
+
           <section
             className="reports-section"
             role="dialog"
@@ -492,92 +873,178 @@ function Dashboard({ user }) {
             aria-labelledby="reports-title"
             onClick={event => event.stopPropagation()}
           >
-        <div className="reports-heading">
-          <div>
-            <p className="eyebrow">YOUR INSIGHTS</p>
-            <h2 id="reports-title">Glucose reports</h2>
-            <p className="reports-subtitle">Review your readings across different time periods.</p>
-          </div>
 
-          <label className="report-date-field">
-            <span>Report date</span>
-            <input
-              type="date"
-              value={reportDate}
-              max={getToday()}
-              onChange={event => setReportDate(event.target.value)}
-            />
-          </label>
-        </div>
+            <div className="reports-heading">
 
-        <div className="report-tabs" role="tablist" aria-label="Report period">
-          <button type="button" role="tab" aria-selected={reportType === 'daily'} className={reportType === 'daily' ? 'active' : ''} onClick={() => setReportType('daily')}>Daily</button>
-          <button type="button" role="tab" aria-selected={reportType === 'monthToDate'} className={reportType === 'monthToDate' ? 'active' : ''} onClick={() => setReportType('monthToDate')}>Month-to-date</button>
-          <button type="button" role="tab" aria-selected={reportType === 'monthly'} className={reportType === 'monthly' ? 'active' : ''} onClick={() => setReportType('monthly')}>Previous month</button>
-        </div>
+              <div>
+                <p className="eyebrow">YOUR INSIGHTS</p>
 
-        {reportLoading ? (
-          <p className="empty-state">Loading report...</p>
-        ) : reportError ? (
-          <p className="alert error">{reportError}</p>
-        ) : selectedReport ? (
-          <>
-            <p className="report-range">
-              {selectedRange?.startDate === selectedRange?.endDate
-                ? formatReportDate(selectedRange.startDate)
-                : `${formatReportDate(selectedRange?.startDate)} – ${formatReportDate(selectedRange?.endDate)}`}
-            </p>
+                <h2 id="reports-title">
+                  Glucose reports
+                </h2>
 
-            {selectedReport.count === 0 ? (
-              <div className="report-empty">
-                <Activity size={25} />
-                <strong>No readings for this period</strong>
-                <p>Add glucose readings to see your highest, lowest, and average values here.</p>
+                <p className="reports-subtitle">
+                  Review your readings across different time periods.
+                </p>
               </div>
-            ) : (
-              <>
-                <div className="report-stats">
-                  <article className="report-stat">
-                    <span>Highest</span>
-                    <strong>{selectedReport.highest}</strong>
-                    <small>mg/dl</small>
-                  </article>
-                  <article className="report-stat">
-                    <span>Lowest</span>
-                    <strong>{selectedReport.lowest}</strong>
-                    <small>mg/dl</small>
-                  </article>
-                  <article className="report-stat">
-                    <span>Average</span>
-                    <strong>{Number(selectedReport.average).toFixed(1)}</strong>
-                    <small>mg/dl</small>
-                  </article>
-                  <article className="report-stat">
-                    <span>Readings</span>
-                    <strong>{selectedReport.count}</strong>
-                    <small>total entries</small>
-                  </article>
-                </div>
 
-                {reportType === 'daily' && selectedReport.readings?.length > 0 && (
-                  <div className="daily-report-readings">
-                    <h3>Readings for the day</h3>
-                    {selectedReport.readings.map(reading => {
-                      const slot = timeSlots.find(item => item.value === reading.time_slot);
-                      return (
-                        <div className="daily-report-item" key={reading.id}>
-                          <span>{slot?.label || reading.time_slot}</span>
-                          <strong>{reading.glucose_value} mg/dl</strong>
-                        </div>
-                      );
-                    })}
+              <label className="report-date-field">
+                <span>Report date</span>
+
+                <input
+                  type="date"
+                  value={reportDate}
+                  max={getToday()}
+                  onChange={event => setReportDate(event.target.value)}
+                />
+              </label>
+
+            </div>
+
+            {/* Report period tabs */}
+            <div
+              className="report-tabs"
+              role="tablist"
+              aria-label="Report period"
+            >
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={reportType === 'daily'}
+                className={reportType === 'daily' ? 'active' : ''}
+                onClick={() => setReportType('daily')}
+              >
+                Daily
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={reportType === 'monthToDate'}
+                className={reportType === 'monthToDate' ? 'active' : ''}
+                onClick={() => setReportType('monthToDate')}
+              >
+                Month-to-date
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={reportType === 'monthly'}
+                className={reportType === 'monthly' ? 'active' : ''}
+                onClick={() => setReportType('monthly')}
+              >
+                Previous month
+              </button>
+
+            </div>
+
+            {reportLoading ? (
+              <p className="empty-state">
+                Loading report...
+              </p>
+            ) : reportError ? (
+              <p className="alert error">
+                {reportError}
+              </p>
+            ) : selectedReport ? (
+              <>
+
+                <p className="report-range">
+                  {selectedRange?.startDate === selectedRange?.endDate
+                    ? formatReportDate(selectedRange.startDate)
+                    : `${formatReportDate(selectedRange?.startDate)} – ${formatReportDate(selectedRange?.endDate)}`}
+                </p>
+
+                {selectedReport.count === 0 ? (
+
+                  <div className="report-empty">
+                    <Activity size={25} />
+
+                    <strong>
+                      No readings for this period
+                    </strong>
+
+                    <p>
+                      Add glucose readings to see your highest,
+                      lowest, and average values here.
+                    </p>
                   </div>
+
+                ) : (
+
+                  <>
+
+                    <div className="report-stats">
+
+                      <article className="report-stat">
+                        <span>Highest</span>
+                        <strong>{selectedReport.highest}</strong>
+                        <small>mg/dl</small>
+                      </article>
+
+                      <article className="report-stat">
+                        <span>Lowest</span>
+                        <strong>{selectedReport.lowest}</strong>
+                        <small>mg/dl</small>
+                      </article>
+
+                      <article className="report-stat">
+                        <span>Average</span>
+                        <strong>
+                          {Number(selectedReport.average).toFixed(1)}
+                        </strong>
+                        <small>mg/dl</small>
+                      </article>
+
+                      <article className="report-stat">
+                        <span>Readings</span>
+                        <strong>{selectedReport.count}</strong>
+                        <small>total entries</small>
+                      </article>
+
+                    </div>
+
+                    {reportType === 'daily' &&
+                      selectedReport.readings?.length > 0 && (
+
+                        <div className="daily-report-readings">
+
+                          <h3>Readings for the day</h3>
+
+                          {selectedReport.readings.map(reading => {
+                            const slot = timeSlots.find(
+                              item => item.value === reading.time_slot
+                            );
+
+                            return (
+                              <div
+                                className="daily-report-item"
+                                key={reading.id}
+                              >
+                                <span>
+                                  {slot?.label || reading.time_slot}
+                                </span>
+
+                                <strong>
+                                  {reading.glucose_value} mg/dl
+                                </strong>
+                              </div>
+                            );
+                          })}
+
+                        </div>
+                      )}
+
+                  </>
                 )}
+
               </>
-            )}
-          </>
-        ) : null}
+            ) : null}
+
             <div className="reports-modal-footer">
+
               <button
                 type="button"
                 className="reports-close-button"
@@ -585,15 +1052,18 @@ function Dashboard({ user }) {
               >
                 Close reports
               </button>
+
             </div>
+
           </section>
         </div>
       )}
+
     </section>
   );
 }
 
-// Main 
+// Main App component
 function App() {
   const [mode, setMode] = useState('register');
   const [user, setUser] = useState(null);
@@ -610,7 +1080,7 @@ function App() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Check already logged in
+  // Check whether the user is already logged in.
   useEffect(() => {
     api('/api/auth/me')
       .then(data => setUser(data.user))
@@ -618,7 +1088,7 @@ function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Handle authentication form changes
+  // Handle authentication form changes.
   function updateField(event) {
     const { name, value } = event.target;
 
@@ -628,7 +1098,7 @@ function App() {
     }));
   }
 
-  // Register or log in
+  // Register or log in.
   async function handleSubmit(event) {
     event.preventDefault();
 
@@ -676,7 +1146,7 @@ function App() {
     }
   }
 
-  // Log out
+  // Log out.
   async function handleLogout() {
     try {
       await api('/api/auth/logout', {
@@ -706,6 +1176,7 @@ function App() {
 
         <a className="brand" href="#home">
           <Logo />
+
           <span className="brand-name">
             sweety<span>.</span>
           </span>
@@ -730,15 +1201,13 @@ function App() {
         </div>
       </header>
 
-      {/* Only ONE ternary condition */}
+      {/* Authentication or Dashboard */}
       {user ? (
 
-        // Logged-in 
         <Dashboard user={user} />
 
       ) : (
 
-        // Logged-out 
         <section className="hero-layout" id="home">
 
           <div className="hero-copy">
@@ -769,6 +1238,7 @@ function App() {
           <section className="auth-card">
 
             <div className="card-heading">
+
               <div>
                 <p className="eyebrow">YOUR PERSONAL SPACE</p>
 
@@ -786,9 +1256,9 @@ function App() {
               </div>
 
               <Logo />
+
             </div>
 
-            {/* Switch between registration and login */}
             <div className="mode-switch">
 
               <button
@@ -818,7 +1288,10 @@ function App() {
             </div>
 
             {/* Authentication form */}
-            <form onSubmit={handleSubmit} className="auth-form">
+            <form
+              onSubmit={handleSubmit}
+              className="auth-form"
+            >
 
               {mode === 'register' && (
                 <label className="field">
@@ -943,7 +1416,6 @@ function App() {
     </main>
   );
 }
-
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
