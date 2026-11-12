@@ -135,7 +135,3 @@ I would like to improve Sweety further by adding the following features:
 3. **Voice-Based Reading Entry:** Add voice input so users can speak their glucose readings instead of typing them. This could make the application easier to use, especially for older adults and people who find typing difficult.
 
 4. **Improved Accessibility:** Add more accessibility options, such as larger text, clearer instructions, and easier navigation.
-
-## Project Note
-
-This is a learning project developed to gain practical experience in full-stack web development. It is intended for tracking and understanding glucose readings and is not a medical device or a replacement for professional medical advice.
